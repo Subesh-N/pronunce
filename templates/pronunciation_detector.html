@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pronunciation Detector</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='pronunciation_detector.css') }}">
+</head>
+<body>
+  <div class="container">
+    <h1>Pronunciation Detector</h1>
+    <p>Enter a sentence below, set it, and speak into the mic for feedback!</p>
+
+    <!-- Input Section -->
+    <div class="input-section">
+      <input type="text" id="sentence-input" placeholder="Enter a sentence" required />
+      <button id="set-sentence-btn">Set Sentence</button>
+      <button id="listen-btn">🔊 Listen</button>
+      
+      <p id="sentence-feedback">Type a sentence and click "Set Sentence" to start.</p>
+      
+
+    </div>
+
+    <!-- Mic Section -->
+    <div class="mic-section">
+      <button id="record-btn">
+        <i class="fas fa-microphone"></i> Record
+      </button>
+      <p id="record-feedback">Press the record button and speak the sentence.</p>
+      
+    </div>
+
+    <!-- Feedback Section -->
+    <div class="feedback-section">
+      <h2>Feedback</h2>
+      <p id="realtime-feedback">Your pronunciation feedback will appear here...</p>
+    </div>
+  </div>
+
+  <!-- JavaScript for Frontend -->
+  <script>
+    const setSentenceBtn = document.getElementById('set-sentence-btn');
+    const recordBtn = document.getElementById('record-btn');
+    const sentenceInput = document.getElementById('sentence-input');
+    const sentenceFeedback = document.getElementById('sentence-feedback');
+    const recordFeedback = document.getElementById('record-feedback');
+    const realtimeFeedback = document.getElementById('realtime-feedback');
+  
+    let currentSentence = '';
+    let recognition;
+  
+    // Set the Sentence
+    setSentenceBtn.addEventListener('click', () => {
+      currentSentence = sentenceInput.value.trim();
+      if (currentSentence) {
+        sentenceFeedback.innerText = `The sentence to pronounce is: "${currentSentence}".`;
+      } else {
+        sentenceFeedback.innerText = 'Please enter a sentence!';
+      }
+    });
+
+    const listenBtn = document.getElementById('listen-btn');
+
+// Function to Speak the Sentence
+function speakSentence(text) {
+  if ('speechSynthesis' in window) {
+    let utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'en-US'; // Set language to English (US)
+    utterance.rate = 0.9; // Adjust speed (1 is normal, 0.9 is slightly slower)
+    speechSynthesis.speak(utterance);
+  } else {
+    alert("Sorry, speech synthesis is not supported in your browser.");
+  }
+}
+
+// Listen Button Click Event
+listenBtn.addEventListener('click', () => {
+  if (currentSentence) {
+    speakSentence(currentSentence);
+  } else {
+    alert("Please set a sentence first!");
+  }
+});
+
+  
+    // Initialize Speech Recognition
+    if ('webkitSpeechRecognition' in window) {
+      recognition = new webkitSpeechRecognition();
+      recognition.continuous = false;
+      recognition.interimResults = false;
+      recognition.lang = 'en-US';
+  
+      recognition.onstart = () => {
+        recordFeedback.innerText = "Recording... Please speak the sentence.";
+      };
+  
+      recognition.onresult = async (event) => {
+        const transcript = event.results[0][0].transcript;
+        recordFeedback.innerText = "Processing your pronunciation...";
+  
+        // Send to backend for evaluation
+        fetch('/process_pronunciation', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sentence: currentSentence, transcript: transcript })
+        })
+        .then(response => response.json())
+        .then(data => {
+          realtimeFeedback.innerText = data.feedback;
+          recordFeedback.innerText = "Recording complete! Check the feedback above.";
+        })
+        .catch(err => {
+          realtimeFeedback.innerText = "Error processing pronunciation. Please try again.";
+        });
+      };
+  
+      recognition.onerror = (event) => {
+        console.error("Speech recognition error:", event.error);
+        recordFeedback.innerText = "Error recognizing speech! Please try again.";
+      };
+    } else {
+      recordFeedback.innerText = "Speech recognition is not supported in this browser.";
+    }
+  
+    // Start Recording
+    recordBtn.addEventListener('click', () => {
+      if (!currentSentence) {
+        recordFeedback.innerText = 'Please set a sentence first!';
+        return;
+      }
+      if (recognition) {
+        recognition.start();
+      }
+    });
+  </script>
+  
+</body>
+</html>

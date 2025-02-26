@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pronunciation History</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='history.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Pronunciation History</h1>
+        <table>
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Sentence</th>
+                    <th>Your Pronunciation</th>
+                    <th>Score (%)</th>
+                    <th>Incorrect Words</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for entry in history %}
+                <tr>
+                    <td>{{ entry.timestamp.strftime('%Y-%m-%d %H:%M') }}</td>
+                    <td>{{ entry.sentence }}</td>
+                    <td>{{ entry.transcript }}</td>
+                    <td>{{ entry.similarity_score|round(2) }}%</td>
+                    <td>{{ entry.incorrect_words if entry.incorrect_words else "✅ Perfect!" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>
