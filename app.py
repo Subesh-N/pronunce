@@ -8,6 +8,7 @@ from tempfile import NamedTemporaryFile
 from deep_translator import GoogleTranslator
 import difflib
 import requests
+from functools import wraps
 
 # Initialize Flask app and set up the secret key
 app = Flask(__name__)
@@ -54,6 +55,16 @@ def calculate_similarity(sentence, transcript):
 
 # Load Whisper model (you can use "base", "small", "medium", or "large" depending on your resources)
 model = whisper.load_model("base", device="cpu")  # Removed fp16 argument
+
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user_id' not in session:
+            if request.endpoint != 'login':  # Prevent infinite redirect
+                flash('Please log in to access this page.', 'danger')
+                return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated_function
 
 # Routes
 @app.route('/')
@@ -110,6 +121,7 @@ def home():
     return render_template('home.html')
 
 @app.route('/logout')
+@login_required
 def logout():
     session.clear()
     flash('You have been logged out.', 'success')
@@ -125,6 +137,7 @@ def forgot():
     return render_template('forgot.html')
 
 @app.route('/history')
+@login_required
 def history():
     if 'user_id' not in session:
         flash('Please log in to view your history.', 'danger')
@@ -135,10 +148,12 @@ def history():
 
 
 @app.route('/pronunciation_detector')
+@login_required
 def pronunciation_detector():
     return render_template('pronunciation_detector.html')
 
 @app.route('/process_pronunciation', methods=['POST'])
+@login_required
 def process_pronunciation():
     try:
         if 'user_id' not in session:
@@ -175,6 +190,7 @@ def process_pronunciation():
         return jsonify({'feedback': f'Error processing pronunciation: {str(e)}'}), 500
 
 @app.route('/check_grammar', methods=['POST'])
+@login_required
 def check_grammar():
     data = request.get_json()
     sentence = data.get('sentence')
@@ -206,10 +222,12 @@ def check_grammar():
     return jsonify({"feedback": feedback})
 
 @app.route('/grammar_checker')
+@login_required
 def grammar_checker():
     return render_template('grammar_checker.html')
 
 @app.route('/translate', methods=['POST'])
+@login_required
 def translate():
     data = request.get_json()
     text = data.get('text', '').strip()
@@ -226,6 +244,7 @@ def translate():
         return jsonify({"error": f"Translation failed: {e}"})
 
 @app.route('/translate_page')
+@login_required
 def translate_page():
     return render_template('translator.html')
 
