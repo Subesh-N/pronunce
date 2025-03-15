@@ -12,7 +12,7 @@ from functools import wraps
 
 # Initialize Flask app and set up the secret key
 app = Flask(__name__)
-app.secret_key = os.environ.get('SECRET_KEY', 'your_secret_key')  # Use environment variable for production
+app.secret_key = os.environ.get('SECRET_KEY', 'subesh')  # Use environment variable for production
 
 # Database Configuration
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'  # SQLite database
